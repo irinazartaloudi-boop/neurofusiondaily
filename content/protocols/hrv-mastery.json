@@ -1,0 +1,15 @@
+{
+  "slug": "hrv-mastery",
+  "title": "HRV Mastery",
+  "tagline": "Understand your recovery signals",
+  "description": "Learn what heart-rate variability measures, its limitations, and how to interpret trends with context rather than anxiety.",
+  "card_description": "Explore heart-rate variability, what it can and cannot tell you, and everyday recovery practices.",
+  "meta": "20 pages · Practical guide",
+  "bullets": [
+    "What HRV can and cannot indicate",
+    "Interpreting trends and measurement noise",
+    "Everyday recovery habits"
+  ],
+  "published": true,
+  "checkout_url": ""
+}
