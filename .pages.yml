@@ -8,18 +8,38 @@ content:
     label: Articles
     type: collection
     path: content/articles
+    format: json
+    filename: "{primary}.json"
     fields:
-      - name: title
-        label: Title
+      - name: slug
+        label: URL Slug
         type: string
-      - name: body
-        label: Article
-        type: rich-text
+        required: true
+      - name: title
+        label: Article Title
+        type: string
+        required: true
+      - name: category
+        label: Category
+        type: string
+      - name: summary
+        label: Short Description
+        type: text
+      - name: symbol
+        label: Symbol
+        type: string
+      - name: body_html
+        label: Article Content (HTML)
+        type: text
+      - name: published
+        label: Published
+        type: boolean
 
   - name: website
     label: Website Settings
     type: file
     path: content/site.json
+    format: json
     fields:
       - name: title
         label: Website Title
