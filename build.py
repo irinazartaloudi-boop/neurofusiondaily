@@ -51,12 +51,11 @@ s=BeautifulSoup((T/'about.html').read_text(),'html.parser');shared(s)
 txt(s.select_one('.page-hero .eyebrow'),site['about_page_eyebrow']);markup(s.select_one('.page-hero h1'),html.escape(site['about_page_heading'])+' <i>'+html.escape(site['about_page_emphasis'])+'</i>');txt(s.select_one('.page-hero p'),site['about_page_description']);set_paras(s.select('.about p'),[site['about_page_paragraph_1'],site['about_page_paragraph_2']]);write(OUT/'about.html',s)
 article_template=BeautifulSoup((T/'articles'/'small-habits.html').read_text(),'html.parser')
 for a in articles:
-  s=BeautifulSoup(str(article_template),'html.parser');shared(s);txt(s.select_one('.page-hero h1'),a['title']);txt(s.title,a['title']+' | NeuroFusion Daily');main=s.select_one('main.reading')
-  for x in list(main.children):
-    x.extract()
-  # Body HTML is trusted author-edited content; author controls GitHub repository.
-  for x in list(BeautifulSoup(a.get('body_html',''),'html.parser').contents):main.append(x)
-  write(OUT/'articles'/(a['slug']+'.html'),s)
+ s=BeautifulSoup(str(article_template),'html.parser');shared(s);txt(s.select_one('.page-hero h1'),a['title']);txt(s.title,a['title']+' | NeuroFusion Daily');main=s.select_one('main.reading')
+ main.clear()
+ # Body HTML is trusted author-edited content; author controls GitHub repository.
+ for x in list(BeautifulSoup(a.get('body_html',''),'html.parser').contents):main.append(x)
+ write(OUT/'articles'/(a['slug']+'.html'),s)
 product_template=BeautifulSoup((T/'protocols'/'sleep-sanctuary.html').read_text(),'html.parser')
 for p in products:
  s=BeautifulSoup(str(product_template),'html.parser');shared(s)
