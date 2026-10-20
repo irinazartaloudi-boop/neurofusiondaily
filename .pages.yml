@@ -41,9 +41,119 @@ content:
     path: content/site.json
     format: json
     fields:
-      - name: title
-        label: Website Title
+      - name: announcement
+        label: Announcement Bar
         type: string
-      - name: tagline
-        label: Tagline
+      - name: brand
+        label: Brand Name
+        type: string
+      - name: brand_byline
+        label: Brand Byline
+        type: string
+
+      - name: hero_eyebrow
+        label: Homepage - Introductory Text
+        type: string
+      - name: hero_heading
+        label: Homepage - Main Heading
+        type: string
+      - name: hero_emphasis
+        label: Homepage - Highlighted Heading
+        type: string
+      - name: hero_heading_end
+        label: Homepage - Heading Ending
+        type: string
+      - name: hero_description
+        label: Homepage - Description
+        type: text
+      - name: hero_button
+        label: Homepage - Main Button
+        type: string
+      - name: hero_secondary_button
+        label: Homepage - Secondary Button
+        type: string
+
+      - name: protocols_eyebrow
+        label: Protocols - Introductory Text
+        type: string
+      - name: protocols_heading
+        label: Protocols - Heading
+        type: string
+      - name: protocols_emphasis
+        label: Protocols - Highlighted Heading
+        type: string
+      - name: protocols_description
+        label: Protocols - Description
+        type: text
+
+      - name: philosophy_eyebrow
+        label: Philosophy - Introductory Text
+        type: string
+      - name: philosophy_heading
+        label: Philosophy - Heading
+        type: string
+      - name: philosophy_paragraph_1
+        label: Philosophy - First Paragraph
+        type: text
+      - name: philosophy_paragraph_2
+        label: Philosophy - Second Paragraph
+        type: text
+
+      - name: journal_eyebrow
+        label: Journal - Introductory Text
+        type: string
+      - name: journal_heading
+        label: Journal - Heading
+        type: string
+      - name: journal_emphasis
+        label: Journal - Highlighted Heading
+        type: string
+      - name: journal_description
+        label: Journal - Description
+        type: text
+
+      - name: newsletter_eyebrow
+        label: Newsletter - Introductory Text
+        type: string
+      - name: newsletter_heading
+        label: Newsletter - Heading
+        type: string
+      - name: newsletter_description
+        label: Newsletter - Description
+        type: text
+
+      - name: about_eyebrow
+        label: Homepage About - Introductory Text
+        type: string
+      - name: about_heading
+        label: Homepage About - Heading
+        type: string
+      - name: about_paragraph_1
+        label: Homepage About - First Paragraph
+        type: text
+      - name: about_paragraph_2
+        label: Homepage About - Second Paragraph
+        type: text
+
+      - name: about_page_eyebrow
+        label: About Page - Introductory Text
+        type: string
+      - name: about_page_heading
+        label: About Page - Heading
+        type: string
+      - name: about_page_emphasis
+        label: About Page - Highlighted Heading
+        type: string
+      - name: about_page_description
+        label: About Page - Description
+        type: text
+      - name: about_page_paragraph_1
+        label: About Page - First Paragraph
+        type: text
+      - name: about_page_paragraph_2
+        label: About Page - Second Paragraph
+        type: text
+
+      - name: footer_tagline
+        label: Footer - Tagline
         type: string
