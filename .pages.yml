@@ -1,0 +1,29 @@
+
+media:
+  input: media
+  output: /media
+
+content:
+  - name: articles
+    label: Articles
+    type: collection
+    path: content/articles
+    fields:
+      - name: title
+        label: Title
+        type: string
+      - name: body
+        label: Article
+        type: rich-text
+
+  - name: website
+    label: Website Settings
+    type: file
+    path: content/site.json
+    fields:
+      - name: title
+        label: Website Title
+        type: string
+      - name: tagline
+        label: Tagline
+        type: string
