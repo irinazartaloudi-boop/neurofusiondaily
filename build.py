@@ -52,7 +52,8 @@ txt(s.select_one('.page-hero .eyebrow'),site['about_page_eyebrow']);markup(s.sel
 article_template=BeautifulSoup((T/'articles'/'small-habits.html').read_text(),'html.parser')
 for a in articles:
  s=BeautifulSoup(str(article_template),'html.parser');shared(s);txt(s.select_one('.page-hero h1'),a['title']);txt(s.title,a['title']+' | NeuroFusion Daily');main=s.select_one('main.reading')
-main.clear()
+for x in list(main.children):
+    x.extract()
  # Body HTML is trusted author-edited content; author controls GitHub repository.
  for x in list(BeautifulSoup(a.get('body_html',''),'html.parser').contents):main.append(x)
  write(OUT/'articles'/(a['slug']+'.html'),s)
