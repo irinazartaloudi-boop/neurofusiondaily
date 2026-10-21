@@ -1,15 +1,16 @@
 {
   "slug": "morning-ritual",
-  "title": "Morning Ritual",
-  "tagline": "Begin with a little more ease",
-  "description": "A flexible morning sequence of light, movement and attention that can be adapted to busy days.",
-  "card_description": "A gentle, flexible morning routine designed for ordinary, imperfect days.",
-  "meta": "4 pages · Everyday ritual",
+  "title": "Morning & Night Ritual System",
+  "tagline": "Gentle routines for both ends of the day",
+  "description": "A flexible morning and evening ritual system to support more intentional beginnings and calmer endings, without perfectionism.",
+  "card_description": "Two adaptable rituals for mornings and evenings, designed for real life.",
+  "meta": "Digital ritual guide",
   "bullets": [
-    "A short or extended routine",
-    "Light, movement and simple grounding",
-    "Flexible, non-perfectionist practice"
+    "Morning light, movement and grounding",
+    "Evening boundaries and wind-down",
+    "Flexible practices for busy days"
   ],
   "published": true,
-  "checkout_url": ""
+  "checkout_url": "https://payhip.com/b/fWlzw",
+  "price": "£19"
 }

@@ -9,3 +9,6 @@
 
 /* NeuroFusion Letter signup: matches the existing blush newsletter section. */
 .letter-signup{max-width:560px;margin:22px auto 0;text-align:left}.letter-label{display:block;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--teal)}.letter-fields{display:flex;gap:10px;align-items:stretch}.letter-fields input[type=email]{min-width:0;flex:1;padding:12px 15px;border:1px solid #b7c6bf;border-radius:3px;background:#fffdf9;color:var(--teal);font:inherit;font-size:15px}.letter-fields input[type=email]:focus-visible,.letter-consent input:focus-visible{outline:3px solid #ba7b6d;outline-offset:3px}.letter-fields .btn{white-space:nowrap}.letter-consent{display:flex;align-items:flex-start;gap:10px;margin-top:15px;color:#52635d;font-size:12px;line-height:1.6}.letter-consent input{margin-top:3px;accent-color:var(--teal)}.letter-honeypot{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}@media(max-width:560px){.letter-fields{flex-direction:column}.letter-fields .btn{width:100%}}
+
+/* Payhip protocol purchase buttons */
+.product .product-buy{display:block;width:max-content;margin-top:18px;text-decoration:none;color:#fff!important}.product .product-buy:hover{color:#fff!important}

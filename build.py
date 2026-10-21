@@ -22,7 +22,10 @@ def card_article(doc):
  txt(el.select_one('.article-image'),doc.get('symbol','✳'));txt(el.select_one('.meta'),doc.get('category','Insights'));txt(el.h3,doc['title']);txt(el.p,doc.get('summary',''));el.a['href']='articles/'+doc['slug']+'.html';return el
 def card_product(doc):
  el=BeautifulSoup('<article class="product"><a aria-label="Explore protocol"></a><div class="product-body"><div class="meta"></div><h3></h3><p></p><a class="read">Explore this protocol →</a></div></article>','html.parser').article
- txt(el.select_one('.meta'),doc.get('meta','Guide'));txt(el.h3,doc['title']);txt(el.p,doc.get('card_description',''));el.select_one('.read')['href']='protocols/'+doc['slug']+'.html';el.select_one('a')['href']=el.select_one('.read')['href'];el.select_one('a')['aria-label']='Explore '+doc['title'];return el
+ txt(el.select_one('.meta'),doc.get('meta','Guide')+' · '+doc.get('price',''));txt(el.h3,doc['title']);txt(el.p,doc.get('card_description',''));el.select_one('.read')['href']='protocols/'+doc['slug']+'.html';el.select_one('a')['href']=el.select_one('.read')['href'];el.select_one('a')['aria-label']='Explore '+doc['title'];
+ if doc.get('checkout_url','').startswith('https://'):
+  buy=BeautifulSoup('<a></a>','html.parser').a;buy['href']=doc['checkout_url'];buy['class']='btn product-buy';buy['target']='_blank';buy['rel']='noopener noreferrer';buy.string='Buy now · '+doc.get('price','')+' →';el.select_one('.product-body').append(buy)
+ return el
 site=load(DATA/'site.json'); articles=[load(x) for x in sorted((DATA/'articles').glob('*.json'))];articles=[a for a in articles if a.get('published',True)];products=[load(x) for x in sorted((DATA/'protocols').glob('*.json'))];products=[p for p in products if p.get('published',True)]
 def shared(s):
  for x in s.select('.announcement'):txt(x,site['announcement'])
@@ -59,11 +62,11 @@ for a in articles:
 product_template=BeautifulSoup((T/'protocols'/'sleep-sanctuary.html').read_text(),'html.parser')
 for p in products:
  s=BeautifulSoup(str(product_template),'html.parser');shared(s)
- for selector,value in [('.product-detail h1',p['title']),('.product-detail .lead',p.get('tagline','')),('.product-detail p:not(.lead)',p.get('description','')),('.product-detail .meta',p.get('meta','Guide')),('.product-detail-cover strong',p['title'])]:txt(s.select_one(selector),value)
+ for selector,value in [('.product-detail h1',p['title']),('.product-detail .lead',p.get('tagline','')),('.product-detail p:not(.lead)',p.get('description','')),('.product-detail .meta',p.get('meta','Guide')+' · '+p.get('price','')),('.product-detail-cover strong',p['title'])]:txt(s.select_one(selector),value)
  txt(s.title,p['title']+' | NeuroFusion Daily');ul=s.select_one('.detail-list');ul.clear()
  for bullet in p.get('bullets',[]):li=s.new_tag('li');li.string=bullet;ul.append(li)
  if p.get('checkout_url','').startswith('https://'):
-  notice=s.select_one('.product-detail .notice');notice.clear();notice.append('Secure checkout is provided by an external payment service.');buy=s.new_tag('a',href=p['checkout_url']);buy['class']='btn';buy.string='Purchase this protocol →';notice.insert_after(buy)
+  notice=s.select_one('.product-detail .notice');notice.clear();notice.append('Secure checkout and digital delivery are handled by Payhip.');buy=s.new_tag('a',href=p['checkout_url']);buy['class']='btn';buy['target']='_blank';buy['rel']='noopener noreferrer';buy.string='Buy now · '+p.get('price','')+' →';notice.insert_after(buy)
  write(OUT/'protocols'/(p['slug']+'.html'),s)
 # sitemap derived from published content
 urls=['','insights.html','about.html']+[f'articles/{a["slug"]}.html' for a in articles]+[f'protocols/{p["slug"]}.html' for p in products]
