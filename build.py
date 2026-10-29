@@ -47,6 +47,8 @@ for selector,items,fn in [('#protocols .products',products,card_product),('#insi
  box=s.select_one(selector);box.clear()
  for item in items:box.append(fn(item))
 write(OUT/'index.html',s)
+s=BeautifulSoup((T/'living.html').read_text(encoding='utf-8'),'html.parser');shared(s)
+write(OUT/'living.html',s)
 s=BeautifulSoup((T/'insights.html').read_text(),'html.parser');shared(s);box=s.select_one('.articles');box.clear()
 for a in articles:box.append(card_article(a))
 write(OUT/'insights.html',s)
