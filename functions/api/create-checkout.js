@@ -11,6 +11,15 @@ const json = (body, status = 200) =>
     }
   });
 
+const ACTIVE_STATUSES = new Set([
+  "active",
+  "trialing",
+  "past_due",
+  "unpaid",
+  "incomplete",
+  "paused"
+]);
+
 export async function onRequestPost({ request, env }) {
   try {
     const {
@@ -18,7 +27,8 @@ export async function onRequestPost({ request, env }) {
       STRIPE_MONTHLY_PRICE_ID,
       STRIPE_YEARLY_PRICE_ID,
       SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY
+      SUPABASE_PUBLISHABLE_KEY,
+      SUPABASE_SECRET_KEY
     } = env;
 
     if (
@@ -26,12 +36,12 @@ export async function onRequestPost({ request, env }) {
       !STRIPE_MONTHLY_PRICE_ID ||
       !STRIPE_YEARLY_PRICE_ID ||
       !SUPABASE_URL ||
-      !SUPABASE_PUBLISHABLE_KEY
+      !SUPABASE_PUBLISHABLE_KEY ||
+      !SUPABASE_SECRET_KEY
     ) {
       return json({ error: "Server configuration missing" }, 503);
     }
 
-    // Checkout must only be requested from our own website.
     const siteUrl = new URL(request.url);
     const origin = request.headers.get("Origin");
 
@@ -39,7 +49,6 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "Origin not allowed" }, 403);
     }
 
-    // Require a real Supabase access token.
     const authorization = request.headers.get("Authorization");
 
     if (!authorization?.startsWith("Bearer ")) {
@@ -52,9 +61,10 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "Authentication required" }, 401);
     }
 
-    // Verify the token with Supabase, not with browser-supplied IDs.
+    const baseSupabaseUrl = SUPABASE_URL.replace(/\/$/, "");
+
     const authResponse = await fetch(
-      `${SUPABASE_URL.replace(/\/$/, "")}/auth/v1/user`,
+      `${baseSupabaseUrl}/auth/v1/user`,
       {
         headers: {
           apikey: SUPABASE_PUBLISHABLE_KEY,
@@ -73,7 +83,6 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "Verified account required" }, 403);
     }
 
-    // Accept only the two plans configured by us.
     let body;
 
     try {
@@ -82,16 +91,14 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "Invalid request body" }, 400);
     }
 
-    const plan = body?.plan;
-
     const prices = {
       monthly: STRIPE_MONTHLY_PRICE_ID,
       yearly: STRIPE_YEARLY_PRICE_ID
     };
 
-    if (
-      !Object.prototype.hasOwnProperty.call(prices, plan)
-    ) {
+    const plan = body?.plan;
+
+    if (!Object.prototype.hasOwnProperty.call(prices, plan)) {
       return json({ error: "Invalid subscription plan" }, 400);
     }
 
@@ -99,20 +106,119 @@ export async function onRequestPost({ request, env }) {
       httpClient: Stripe.createFetchHttpClient()
     });
 
-    // A Stripe customer is explicitly linked to the verified user.
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: {
-        supabase_user_id: user.id
+    const adminHeaders = {
+      apikey: SUPABASE_SECRET_KEY,
+      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+      Accept: "application/json"
+    };
+
+    // Only the server may read the membership/customer association.
+    const membershipResponse = await fetch(
+      `${baseSupabaseUrl}/rest/v1/nf_memberships` +
+      `?user_id=eq.${encodeURIComponent(user.id)}` +
+      `&select=user_id,stripe_customer_id,stripe_subscription_id`,
+      { headers: adminHeaders }
+    );
+
+    if (!membershipResponse.ok) {
+      throw new Error("Membership lookup failed");
+    }
+
+    const memberships = await membershipResponse.json();
+    const membership = memberships[0] ?? null;
+
+    let customerId = membership?.stripe_customer_id ?? null;
+
+    if (customerId) {
+      const customer = await stripe.customers.retrieve(customerId);
+
+      if (
+        customer.deleted ||
+        customer.metadata?.supabase_user_id !== user.id
+      ) {
+        return json(
+          { error: "Customer association requires support" },
+          409
+        );
       }
+    } else {
+      // Recover an existing customer linked to this verified user.
+      // Never identify ownership using email alone.
+      const matches = await stripe.customers.search({
+        query: `metadata['supabase_user_id']:'${user.id}'`,
+        limit: 10
+      });
+
+      if (matches.has_more || matches.data.length > 1) {
+        return json(
+          { error: "Customer association requires support" },
+          409
+        );
+      }
+
+      if (matches.data.length === 1) {
+        customerId = matches.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            supabase_user_id: user.id
+          }
+        });
+
+        customerId = customer.id;
+      }
+    }
+
+    // Do not create another subscription while an existing
+    // subscription still needs billing or account management.
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 100
     });
 
-    // All return URLs are fixed by the server.
-    const baseUrl = siteUrl.origin;
+    if (
+      subscriptions.has_more ||
+      subscriptions.data.some(subscription =>
+        ACTIVE_STATUSES.has(subscription.status)
+      )
+    ) {
+      return json(
+        {
+          error:
+            "An existing subscription requires account management"
+        },
+        409
+      );
+    }
+
+    // Save the verified customer association before Checkout.
+    // The database uniqueness constraints protect ownership.
+    const saveResponse = await fetch(
+      `${baseSupabaseUrl}/rest/v1/nf_memberships` +
+      "?on_conflict=user_id",
+      {
+        method: "POST",
+        headers: {
+          ...adminHeaders,
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates"
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          stripe_customer_id: customerId
+        })
+      }
+    );
+
+    if (!saveResponse.ok) {
+      throw new Error("Customer association could not be saved");
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      customer: customer.id,
+      customer: customerId,
       client_reference_id: user.id,
       line_items: [
         {
@@ -131,13 +237,14 @@ export async function onRequestPost({ request, env }) {
         neurofusion_plan: plan
       },
       success_url:
-        `${baseUrl}/living.html?checkout=success` +
-        `&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/living.html?checkout=cancelled`
+        `${siteUrl.origin}/living.html?checkout=success` +
+        "&session_id={CHECKOUT_SESSION_ID}",
+      cancel_url:
+        `${siteUrl.origin}/living.html?checkout=cancelled`
     });
 
     if (!session.url) {
-      return json({ error: "Checkout unavailable" }, 502);
+      throw new Error("Stripe did not return a Checkout URL");
     }
 
     return json({ url: session.url });
