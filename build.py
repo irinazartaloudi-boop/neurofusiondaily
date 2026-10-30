@@ -51,6 +51,8 @@ s=BeautifulSoup((T/'living.html').read_text(encoding='utf-8'),'html.parser');sha
 write(OUT/'living.html',s)
 s=BeautifulSoup((T/'living-dashboard.html').read_text(encoding='utf-8'),'html.parser')
 write(OUT/'members'/'index.html',s)
+s=BeautifulSoup((T/'member-login.html').read_text(encoding='utf-8'),'html.parser')
+write(OUT/'member-login.html',s)
 s=BeautifulSoup((T/'auth-callback.html').read_text(encoding='utf-8'),'html.parser')
 write(OUT/'auth'/'callback'/'index.html',s)
 s=BeautifulSoup((T/'insights.html').read_text(),'html.parser');shared(s);box=s.select_one('.articles');box.clear()
