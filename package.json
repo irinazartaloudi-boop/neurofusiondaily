@@ -1,0 +1,7 @@
+{
+  "name": "neurofusiondaily",
+  "private": true,
+  "dependencies": {
+    "stripe": "^20.0.0"
+  }
+}
