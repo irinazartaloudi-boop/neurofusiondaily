@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Account verification | NeuroFusion Living</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f8f6f1;
+      color: #193d39;
+      font-family: Georgia, serif;
+    }
+    main {
+      width: min(420px, 85%);
+      padding: 40px;
+      background: #fffdfa;
+      border: 1px solid #e8e5df;
+      border-radius: 18px;
+      text-align: center;
+    }
+    h1 { font-size: 30px; font-weight: normal; }
+    p { font: 15px/1.7 Arial, sans-serif; }
+    a { color: #193d39; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>NeuroFusion Living</h1>
+    <p id="message" role="status">
+      Verifying your account...
+    </p>
+    <p>
+      <a href="/living.html">Return to NeuroFusion Living</a>
+    </p>
+  </main>
+
+  <script type="module">
+    const message = document.getElementById("message");
+    const params = new URLSearchParams(location.search);
+    const fragment = new URLSearchParams(location.hash.slice(1));
+
+    const error = params.get("error_description")
+      || fragment.get("error_description");
+
+    if (error) {
+      message.textContent =
+        "This verification link could not be completed. "
+        + "Please request a new link.";
+    } else {
+      message.textContent =
+        "Your verification link has been received. "
+        + "Account activation will be available "
+        + "when member authentication is connected.";
+    }
+
+    // Remove any tokens or codes from the visible URL.
+    history.replaceState(null, "", "/auth/callback");
+  </script>
+</body>
+</html>
