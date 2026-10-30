@@ -192,7 +192,8 @@
             password: pass
           });
           if (error) throw error;
-          message.textContent = "Signed in successfully. Membership verification will be connected next.";
+          message.textContent = "Signed in successfully. Opening your Living Space...";
+window.location.assign("/members/");
         }
       } catch (error) {
         message.textContent = error.message || "Something went wrong.";
