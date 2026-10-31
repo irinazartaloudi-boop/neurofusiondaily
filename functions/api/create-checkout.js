@@ -128,7 +128,7 @@ export async function onRequestPost({request,env}) {
       line_items:[{price,quantity:1}],
       metadata:{supabase_user_id:user.id,neurofusion_plan:input.plan},
       subscription_data:{metadata:{supabase_user_id:user.id,neurofusion_plan:input.plan}},
-      success_url:'https://www.neurofusiondaily.com/living.html?checkout=success&session_id={CHECKOUT_SESSION_ID}',
+      success_url:'https://www.neurofusiondaily.com/members/?checkout=success&session_id={CHECKOUT_SESSION_ID}',
       cancel_url:'https://www.neurofusiondaily.com/living.html?checkout=cancelled'
     },{idempotencyKey:`nf-checkout-${state.operation_id}`});
     if(!session.url||!session.expires_at) throw new Error('Stripe session incomplete');
