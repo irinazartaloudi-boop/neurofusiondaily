@@ -104,8 +104,22 @@ function safeArticle(body){
 }
 
 function render(){document.querySelectorAll('#member-content-list').forEach(el=>{el.replaceChildren();const section=el.closest('[data-section]').dataset.section;const matches=items.filter(x=>x.section===section&&(owner||x.published));if(!matches.length){el.append(make('p','No published content in this section yet.'));return;}for(const item of matches){const card=document.createElement('article');card.append(make('h3',item.title),make('p',item.summary));const details=document.createElement('details');details.append(make('summary','Read content'),safeArticle(item.body));card.append(details);el.append(card);}});const own=document.getElementById('owner-content-list');own.replaceChildren();if(!owner)return;for(const item of items){const card=document.createElement('div');card.className='content-entry';card.append(make('strong',item.title),make('span',` · ${names[item.section]} · ${item.published?'Published':'Draft'}`));const edit=make('button','Edit');edit.type='button';edit.addEventListener('click',()=>{for(const key of ['id','section','title','summary','body'])form.elements[key].value=item[key];form.elements.published.checked=item.published;container.scrollIntoView({behavior:'smooth'});});card.append(edit);own.append(card);}}
-async function load(){try{const r=await fetch('/members/content',{cache:'no-store'});if(!r.ok){let detail='';try{const data=await r.json();detail=data.error||'';}catch{}throw Error('HTTP '+r.status+(detail?' — '+detail:''));}const data=await r.json();owner=data.owner===true;items=data.items||[];container.hidden=!owner;render();}catch(e){container.hidden=false;form.hidden=true;container.querySelector('h2').textContent='Content Library Manager — connection check';feedback.textContent='The content service did not load. Please send this message: '+(e?.message||'Unknown error');}}
-form.addEventListener('submit',async e=>{e.preventDefault();feedback.textContent='Saving…';const payload={};for(const key of ['id','section','title','summary','body'])payload[key]=form.elements[key].value;payload.published=form.elements.published.checked;if(!payload.id)delete payload.id;try{const r=await fetch('/members/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!r.ok)throw Error((await r.json()).error||'Save failed');feedback.textContent='Saved successfully.';form.reset();await load();}catch(err){feedback.textContent=err.message;}});
+async function contentResponse(response){
+ const type=(response.headers.get('content-type')||'').toLowerCase();
+ if(!type.includes('application/json')){
+  if(response.redirected || response.url.includes('/member-login')) throw Error('Your login session may have expired. Please sign out and sign in again, then reopen the Content Library Manager.');
+  throw Error('The content API returned a website page instead of JSON (HTTP '+response.status+'). This may be a Cloudflare Access challenge or a missing Pages Function route. Please report this exact error.');
+ }
+ const data=await response.json();
+ if(!response.ok) throw Error((data.error||'Content service error')+' (HTTP '+response.status+(data.code?', '+data.code:'')+')');
+ return data;
+}
+async function load(){try{
+ const r=await fetch('/members/content',{credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}});
+ const data=await contentResponse(r);owner=data.owner===true;items=data.items||[];
+ container.hidden=!owner;form.hidden=false;container.querySelector('h2').textContent='Content Library Manager';render();
+}catch(e){container.hidden=false;form.hidden=true;container.querySelector('h2').textContent='Content Library Manager — connection check';feedback.textContent='The content service did not load: '+(e?.message||'Unknown error');}}
+form.addEventListener('submit',async e=>{e.preventDefault();feedback.textContent='Saving…';const payload={};for(const key of ['id','section','title','summary','body'])payload[key]=form.elements[key].value;payload.published=form.elements.published.checked;if(!payload.id)delete payload.id;try{const r=await fetch('/members/content',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});await contentResponse(r);feedback.textContent='Saved successfully.';form.reset();await load();}catch(err){feedback.textContent=err.message;}});
 document.getElementById('content-new').addEventListener('click',()=>{form.reset();form.elements.id.value='';feedback.textContent='New draft ready.';});
 load();
 </script>

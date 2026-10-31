@@ -25,12 +25,14 @@ function readCookie(header, name) {
 
 export async function onRequest(context) {
   const { request, env } = context;
+  const isContentApi = new URL(request.url).pathname.replace(/\/$/, '') === '/members/content';
+  const denied = (message, code, status = 401) => isContentApi ? json({ error: message, code }, status) : redirect('/member-login.html');
   const rawToken = readCookie(request.headers.get('Cookie') || '', 'nf_member_access');
-  if (!rawToken) return redirect('/member-login.html');
+  if (!rawToken) return denied('Your session has expired. Please sign in again.', 'session_missing');
 
   let token;
   try { token = decodeURIComponent(rawToken); }
-  catch { return redirect('/member-login.html'); }
+  catch { return denied('Your session is invalid. Please sign in again.', 'session_invalid'); }
 
   if (![env.SUPABASE_URL, env.SUPABASE_PUBLISHABLE_KEY, env.SUPABASE_SECRET_KEY].every(Boolean)) {
     return json({ error: 'Membership service unavailable', code: 'membership_config_missing' }, 503);
@@ -43,9 +45,9 @@ export async function onRequest(context) {
       headers: { apikey: env.SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
       cache: 'no-store'
     });
-    if (!authResponse.ok) return redirect('/member-login.html');
+    if (!authResponse.ok) return denied('Your session has expired. Please sign in again.', 'session_expired');
     const user = await authResponse.json();
-    if (!user.id || !user.email_confirmed_at) return redirect('/member-login.html');
+    if (!user.id || !user.email_confirmed_at) return denied('Your account must be verified. Please sign in again.', 'account_unverified');
 
     // Owner preview access is limited to this exact verified Supabase user ID.
     if (env.NF_OWNER_USER_ID && user.id === env.NF_OWNER_USER_ID) {
@@ -67,7 +69,7 @@ export async function onRequest(context) {
     if (!Array.isArray(records)) throw new Error('Unexpected membership response');
     const record = records[0];
     if (!record?.stripe_customer_id || !record?.stripe_subscription_id) {
-      return redirect('/living.html?membership=required');
+      return isContentApi ? json({error:'An active membership is required.',code:'membership_required'},403) : redirect('/living.html?membership=required');
     }
 
     if (![env.STRIPE_SECRET_KEY, env.STRIPE_MONTHLY_PRICE_ID, env.STRIPE_YEARLY_PRICE_ID].every(Boolean)) {
@@ -87,7 +89,7 @@ export async function onRequest(context) {
       priceIds.length === 1 &&
       [env.STRIPE_MONTHLY_PRICE_ID, env.STRIPE_YEARLY_PRICE_ID].includes(priceIds[0]) &&
       ['active', 'trialing'].includes(subscription.status);
-    if (!entitled) return redirect('/living.html?membership=required');
+    if (!entitled) return isContentApi ? json({error:'An active membership is required.',code:'membership_required'},403) : redirect('/living.html?membership=required');
 
     return protectedResponse(await context.next());
   } catch (error) {
