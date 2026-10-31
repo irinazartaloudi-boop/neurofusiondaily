@@ -1,3 +1,4 @@
+import { adminHeaders } from './_supabase-admin.js';
 import Stripe from 'stripe';
 
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{
@@ -7,9 +8,7 @@ const supported=new Set(['checkout.session.completed','customer.subscription.cre
   'customer.subscription.updated','customer.subscription.deleted','invoice.paid','invoice.payment_failed']);
 const supa=env=>env.SUPABASE_URL.replace(/\/$/,'');
 async function rpc(env,name,args){
-  const r=await fetch(`${supa(env)}/rest/v1/rpc/${name}`,{method:'POST',headers:{
-    apikey:env.SUPABASE_SECRET_KEY,Authorization:`Bearer ${env.SUPABASE_SECRET_KEY}`,
-    'Content-Type':'application/json'},body:JSON.stringify(args)});
+  const r=await fetch(`${supa(env)}/rest/v1/rpc/${name}`,{method:'POST',headers:adminHeaders(env, {'Content-Type':'application/json'}),body:JSON.stringify(args)});
   if(!r.ok) throw new Error(`Database ${name} error ${r.status}: ${(await r.text()).slice(0,300)}`);
   return r.json();
 }

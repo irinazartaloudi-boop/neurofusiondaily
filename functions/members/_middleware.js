@@ -1,3 +1,4 @@
+import { adminHeaders } from '../api/_supabase-admin.js';
 import Stripe from 'stripe';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -52,10 +53,10 @@ export async function onRequest(context) {
     // as Authorization: Bearer; the gateway grants service-role access via apikey.
     const membershipsResponse = await fetch(
       `${root}/rest/v1/nf_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=stripe_customer_id,stripe_subscription_id`,
-      { headers: { apikey: env.SUPABASE_SECRET_KEY, Accept: 'application/json' }, cache: 'no-store' }
+      { headers: adminHeaders(env), cache: 'no-store' }
     );
     if (!membershipsResponse.ok) {
-      console.error('Protected page membership query failed', membershipsResponse.status);
+      console.error('Protected page membership query failed', membershipsResponse.status, (await membershipsResponse.text()).slice(0, 450));
       return json({ error: 'Membership verification unavailable' }, 503);
     }
     const records = await membershipsResponse.json();

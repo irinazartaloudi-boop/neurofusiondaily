@@ -1,10 +1,11 @@
+import { adminHeaders } from './_supabase-admin.js';
 import Stripe from 'stripe';
 
 const respond = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: {'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}
 });
 const base = env => env.SUPABASE_URL.replace(/\/$/, '');
-const admin = env => ({apikey:env.SUPABASE_SECRET_KEY,Authorization:`Bearer ${env.SUPABASE_SECRET_KEY}`,'Content-Type':'application/json'});
+const admin = env => adminHeaders(env, {'Content-Type':'application/json'});
 async function rpc(env,name,args) {
   const r=await fetch(`${base(env)}/rest/v1/rpc/${name}`,{method:'POST',headers:admin(env),body:JSON.stringify(args)});
   if(!r.ok) throw new Error(`RPC ${name}: ${r.status}`);

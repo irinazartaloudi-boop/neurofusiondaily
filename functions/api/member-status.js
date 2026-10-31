@@ -1,3 +1,4 @@
+import { adminHeaders } from './_supabase-admin.js';
 import Stripe from 'stripe';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 export async function onRequestGet({request,env}) {
@@ -10,7 +11,7 @@ export async function onRequestGet({request,env}) {
     if(!r.ok) return json({error:'Invalid session'},401);
     const user=await r.json();
     if(!user.id||!user.email_confirmed_at) return json({error:'Verified account required'},403);
-    const m=await fetch(`${root}/rest/v1/nf_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=stripe_customer_id,stripe_subscription_id`,{headers:{apikey:env.SUPABASE_SECRET_KEY,Authorization:`Bearer ${env.SUPABASE_SECRET_KEY}`}});
+    const m=await fetch(`${root}/rest/v1/nf_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=stripe_customer_id,stripe_subscription_id`,{headers:adminHeaders(env)});
     if(!m.ok) throw new Error('Membership query failed');
     const record=(await m.json())[0];
     if(!record?.stripe_customer_id||!record?.stripe_subscription_id) return json({entitled:false,status:'inactive'});
