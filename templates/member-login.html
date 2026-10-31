@@ -6,6 +6,30 @@
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const checkoutButton=document.getElementById('test-checkout');let checkoutToken=null;const message=document.getElementById('message'),submit=document.getElementById('submit-button'),password=document.getElementById('password'),register=document.getElementById('register'),reset=document.getElementById('reset'),form=document.getElementById('auth-form');let mode='signin',supabase;
 try{const response=await fetch('/api/auth-config',{cache:'no-store'});if(!response.ok)throw Error('Authentication unavailable');const config=await response.json();if(!config.supabaseUrl||!config.supabasePublishableKey)throw Error('Authentication unavailable');supabase=createClient(config.supabaseUrl,config.supabasePublishableKey);}catch{message.textContent='Sign-in is temporarily unavailable. Please try again later.';submit.disabled=true;}
+async function showPrivateCheckoutIfEligible(accessToken) {
+  // The server verifies the token and exact allowlisted user ID. This page
+  // never exposes a public payment link or authorises checkout by itself.
+  const eligibility=await fetch('/api/create-checkout',{
+    method:'GET',headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store'
+  });
+  if(!eligibility.ok)return false;
+  const status=await eligibility.json();
+  if(status.eligible===true){
+    checkoutToken=accessToken;
+    checkoutButton.hidden=false;
+    message.textContent='Your test account is signed in. You can continue to the private monthly checkout.';
+    return true;
+  }
+  return false;
+}
+// Supabase restores its session after a redirect or page refresh. Allow the
+// designated test user to see the button without having to sign in again.
+if(supabase){
+  const {data:{session}}=await supabase.auth.getSession();
+  if(session?.access_token){
+    try{await showPrivateCheckoutIfEligible(session.access_token);}catch{}
+  }
+}
 checkoutButton.addEventListener('click',async()=>{
   if(!checkoutToken)return;
   checkoutButton.disabled=true;message.textContent='Opening secure checkout…';
@@ -20,12 +44,11 @@ checkoutButton.addEventListener('click',async()=>{
 });
 register.addEventListener('click',()=>{mode=mode==='signup'?'signin':'signup';submit.textContent=mode==='signup'?'Create account':'Sign in';register.textContent=mode==='signup'?'Already have an account? Sign in':'Create an account';password.autocomplete=mode==='signup'?'new-password':'current-password';message.textContent='';});
 reset.addEventListener('click',async()=>{if(!supabase)return;const email=document.getElementById('email').value.trim();if(!email){message.textContent='Please enter your email address first.';return;}const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/auth/callback'});message.textContent=error?"We couldn't process that request. Please try again.":"If an account exists for this email, you'll receive password reset instructions.";});
-form.addEventListener('submit',async event=>{event.preventDefault();if(!supabase)return;submit.disabled=true;message.textContent='';const email=document.getElementById('email').value.trim(),pass=password.value;try{if(mode==='signup'){const {error}=await supabase.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin+'/auth/callback'}});if(error)throw error;message.textContent='Please check your email for your verification link.';}else{const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});if(error)throw error;if(!data.session?.access_token)throw Error('Unable to establish session');const session=await fetch('/api/member-session',{method:'POST',headers:{Authorization:`Bearer ${data.session.access_token}`},cache:'no-store'});if(!session.ok){
-  // A non-subscriber cannot enter the dashboard. Only the allowlisted test
-  // account may see the prelaunch payment option.
-  const eligibility=await fetch('/api/create-checkout',{headers:{Authorization:`Bearer ${data.session.access_token}`},cache:'no-store'});
-  const status=eligibility.ok?await eligibility.json():{};
-  if(status.eligible){checkoutToken=data.session.access_token;checkoutButton.hidden=false;message.textContent='Your account is signed in. Complete the private monthly subscription test to activate access.';return;}
-  throw Error('A subscription is required to access the dashboard. Membership is not yet open.');
-}window.location.assign('/members/');}}catch(error){message.textContent=error.message||'Something went wrong.';}finally{submit.disabled=false;}});
+form.addEventListener('submit',async event=>{event.preventDefault();if(!supabase)return;submit.disabled=true;message.textContent='';const email=document.getElementById('email').value.trim(),pass=password.value;try{if(mode==='signup'){const {error}=await supabase.auth.signUp({email,password:pass,options:{emailRedirectTo:location.origin+'/auth/callback'}});if(error)throw error;message.textContent='Please check your email for your verification link.';}else{const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});if(error)throw error;if(!data.session?.access_token)throw Error('Unable to establish session');const session=await fetch('/api/member-session',{method:'POST',headers:{Authorization:`Bearer ${data.session.access_token}`},cache:'no-store'});// /api/member-session establishes an authenticated cookie; it does NOT
+// grant paid access. Check the private test exception before redirecting to
+// the subscriber-only dashboard, otherwise middleware sends unpaid testers
+// back to the public Coming Soon page.
+if(await showPrivateCheckoutIfEligible(data.session.access_token))return;
+if(!session.ok)throw Error('Unable to establish your member session. Please try again.');
+window.location.assign('/members/');}}catch(error){message.textContent=error.message||'Something went wrong.';}finally{submit.disabled=false;}});
 </script></body></html>
