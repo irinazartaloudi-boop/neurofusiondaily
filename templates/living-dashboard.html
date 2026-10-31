@@ -16,8 +16,8 @@ body{background:var(--studio-bg)}.studio{display:grid;grid-template-columns:260p
 <button type="button" data-view="seasons"><span class="nav-icon">❋</span> Life Seasons</button>
 <button type="button" data-view="circles"><span class="nav-icon">◎</span> Circles</button>
 <button type="button" data-view="events"><span class="nav-icon">✧</span> Events & Workshops</button>
-</nav><div class="studio-bottom">Design preview only — no account or paid content is connected.<p><a href="/living.html">← Back to NeuroFusion Living</a></p></div></aside>
-<main class="studio-main"><header class="studio-top"><span class="small-label" id="view-label">My Living Space</span><span class="preview">Design preview · Not open to members</span></header><div class="studio-content">
+</nav><div class="studio-bottom">Member access is protected. Content features are being prepared.<p><a href="/living.html">← Back to NeuroFusion Living</a></p><p><button type="button" id="member-signout" class="studio-menu-button">Sign out</button></p><p id="signout-message" role="status" aria-live="polite"></p></div></aside>
+<main class="studio-main"><header class="studio-top"><span class="small-label" id="view-label">My Living Space</span><span class="preview" id="member-identity">Member area · Content in preparation</span></header><div class="studio-content">
 <section class="studio-section" data-section="home"><div class="studio-hero"><span class="hero-note">A little space for yourself</span><h1>Welcome to your<br><em>Living Space.</em></h1><p>Learn something nourishing. Make a little room for yourself. Return to the practices that help you feel well — at your own pace.</p></div><h2 class="studio-section-title">Explore your space</h2><div class="studio-grid" id="home-cards"></div><div class="studio-feature"><div><span class="studio-eyebrow">From the Academy</span><h3>The Science of Better Sleep</h3><p>A thoughtful, practical course exploring what shapes sleep and how to create conditions for better rest.</p><span class="studio-eyebrow">Course preview · Coming at launch</span></div><div class="feature-art" aria-hidden="true">☾</div></div></section>
 <section class="studio-section" data-section="academy" hidden><span class="studio-eyebrow">Learn at your own pace</span><h1 class="studio-title">The Academy</h1><p class="studio-lead">Beautifully structured courses that turn research into understanding — and understanding into meaningful everyday practices.</p><div class="studio-grid"><article class="studio-card"><span class="symbol">☾</span><h3>The Science of Better Sleep</h3><p>Sleep biology, daily rhythms and practical ways to support restorative rest.</p><span class="tag">Course planned for launch</span></article><article class="studio-card"><span class="symbol">✿</span><h3>Nutrition & the Brain</h3><p>Explore the relationship between food, cognition and wellbeing.</p><span class="tag">Course concept</span></article><article class="studio-card"><span class="symbol">◈</span><h3>Dopamine & Everyday Motivation</h3><p>Understand reward, attention and the habits that shape your days.</p><span class="tag">Course concept</span></article></div></section>
 <section class="studio-section" data-section="kitchen" hidden><span class="studio-eyebrow">Nourishment, without rules</span><h1 class="studio-title">Brain Food Kitchen</h1><p class="studio-lead">Seasonal recipes, thoughtful ingredients and delicious ways to care for your health. Weekly recipes and practical meal-planning resources will live here.</p><div class="studio-grid"><article class="studio-card"><span class="symbol">🥬</span><h3>Recipe Library</h3><p>A growing collection of satisfying, science-informed meals.</p><span class="tag">Coming at launch</span></article><article class="studio-card"><span class="symbol">◷</span><h3>Weekly Inspiration</h3><p>Fresh ideas for your kitchen, one week at a time.</p><span class="tag">Coming at launch</span></article></div></section>
@@ -29,7 +29,43 @@ body{background:var(--studio-bg)}.studio{display:grid;grid-template-columns:260p
 <section class="studio-section" data-section="seasons" hidden><span class="studio-eyebrow">There is no single path</span><h1 class="studio-title">Life Seasons</h1><p class="studio-lead">Curated journeys for different chapters of life — growth, recovery, change and balance.</p></section>
 <section class="studio-section" data-section="circles" hidden><span class="studio-eyebrow">Connection in real life</span><h1 class="studio-title">Circles</h1><p class="studio-lead">An optional community for thoughtful conversations and future local meetups. Community features will open when moderation and privacy controls are ready.</p></section>
 <section class="studio-section" data-section="events" hidden><span class="studio-eyebrow">Learn together</span><h1 class="studio-title">Events & Workshops</h1><p class="studio-lead">Live conversations, member Q&As and future workshops and gatherings.</p></section>
-<div class="studio-notice">This is an interface preview. It does not contain paid lessons, member records, functioning trackers or subscription access. Those will be connected securely before launch.</div>
+<div class="studio-notice">The member area is access-controlled. Courses, libraries and interactive tools are not yet published; they will be connected before launch.</div>
 </div></main></div><script>
 (()=>{'use strict';const views={home:'My Living Space',academy:'Academy',kitchen:'Brain Food Kitchen',journal:'Journal',rhythm:'Rhythm',calm:'Calm Library',studio:'Life Studio',reset:'Reset Room',seasons:'Life Seasons',circles:'Circles',events:'Events & Workshops'};const descriptions={academy:'Explore thoughtful courses and practical exercises.',kitchen:'Nourishing recipes and kitchen inspiration.',journal:'Weekly essays and ideas worth slowing down for.',rhythm:'Small habits, without pressure or streaks.',calm:'Meditations and gentle moments of rest.',studio:'Journals, notebooks and reflection tools.',reset:'Support for the more difficult days.',seasons:'Guided journeys through life’s changing chapters.',circles:'A thoughtful community, when you want connection.',events:'Live Q&As, workshops and gatherings.'};const symbols={academy:'◈',kitchen:'✿',journal:'✎',rhythm:'◌',calm:'☾',studio:'▤',reset:'♡',seasons:'❋',circles:'◎',events:'✧'};const home=document.getElementById('home-cards');Object.keys(descriptions).slice(0,9).forEach(k=>{const card=document.createElement('article');card.className='studio-card';const sym=document.createElement('span');sym.className='symbol';sym.textContent=symbols[k];const title=document.createElement('h3');title.textContent=views[k];const para=document.createElement('p');para.textContent=descriptions[k];const tag=document.createElement('span');tag.className='tag';tag.textContent='Explore section in preview';card.append(sym,title,para,tag);home.append(card)});const buttons=[...document.querySelectorAll('[data-view]')];function show(view){if(!views[view])return;document.querySelectorAll('[data-section]').forEach(s=>{s.hidden=s.dataset.section!==view});buttons.forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});document.getElementById('view-label').textContent=views[view];document.getElementById('studio-sidebar').classList.remove('is-open');document.getElementById('studio-menu').setAttribute('aria-expanded','false');window.scrollTo({top:0,behavior:'instant'})}buttons.forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));document.getElementById('studio-menu').addEventListener('click',()=>{const side=document.getElementById('studio-sidebar');const open=side.classList.toggle('is-open');document.getElementById('studio-menu').setAttribute('aria-expanded',String(open))});})();
+</script><script type="module">
+// Profile is fetched only through the server-protected /members route.
+const identity = document.getElementById('member-identity');
+try {
+  const r = await fetch('/members/profile', {credentials:'same-origin',cache:'no-store'});
+  if (r.ok) {
+    const profile = await r.json();
+    identity.textContent = profile.owner ? 'Owner account · Content in preparation' : 'Signed in · Content in preparation';
+    identity.title = profile.email || '';
+  }
+} catch { /* Account display is optional; access is enforced server-side. */ }
+document.getElementById('member-signout').addEventListener('click', async () => {
+  const button = document.getElementById('member-signout');
+  const message = document.getElementById('signout-message');
+  button.disabled = true;
+  try {
+    const r = await fetch('/api/member-session', {method:'DELETE',credentials:'same-origin',cache:'no-store'});
+    if (!r.ok) throw new Error('Sign out failed');
+    // Also clear Supabase browser auth state so the next user starts fresh.
+    try {
+      const {createClient} = await import('https://esm.sh/@supabase/supabase-js@2');
+      const configResponse = await fetch('/api/auth-config', {cache:'no-store'});
+      if (configResponse.ok) {
+        const config = await configResponse.json();
+        if (config.supabaseUrl && config.supabasePublishableKey) {
+          const client = createClient(config.supabaseUrl, config.supabasePublishableKey);
+          await client.auth.signOut({scope:'local'});
+        }
+      }
+    } catch { /* Server cookie is already cleared; browser sign-out is best-effort. */ }
+    window.location.replace('/member-login.html');
+  } catch {
+    message.textContent = 'Unable to sign out. Please try again.';
+    button.disabled = false;
+  }
+});
 </script></body></html>
