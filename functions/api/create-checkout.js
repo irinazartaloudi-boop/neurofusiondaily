@@ -40,8 +40,10 @@ async function checkSubscriptions(stripe,customerId) {
   return true;
 }
 export async function onRequestPost({request,env}) {
-  // This flag is absent until the complete access-control and billing journey is verified.
-  if(env.NF_CHECKOUT_ENABLED!=='true') return respond({error:'Checkout is closed'},403);
+  // Public checkout remains closed. A separate confirmed Supabase account may
+  // perform one real monthly checkout when explicitly allowlisted by user ID.
+  const publicCheckout = env.NF_CHECKOUT_ENABLED === 'true';
+  if (!publicCheckout && !env.NF_CHECKOUT_TEST_USER_ID) return respond({error:'Checkout is closed'},403);
   if(![env.STRIPE_SECRET_KEY,env.STRIPE_MONTHLY_PRICE_ID,env.STRIPE_YEARLY_PRICE_ID,env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,env.SUPABASE_SECRET_KEY].every(Boolean)) return respond({error:'Configuration missing'},503);
   if(!sameSite(request)) return respond({error:'Origin denied'},403);
   let input;
@@ -50,6 +52,8 @@ export async function onRequestPost({request,env}) {
   try {
     const user=await verifyUser(request,env);
     if(!user) return respond({error:'Verified login required'},401);
+    if (!publicCheckout && (user.id !== env.NF_CHECKOUT_TEST_USER_ID || input.plan !== 'monthly'))
+      return respond({error:'Checkout is closed'},403);
     const stripe=new Stripe(env.STRIPE_SECRET_KEY,{httpClient:Stripe.createFetchHttpClient()});
     const m=await membership(env,user.id);
     if(m?.stripe_subscription_id) {

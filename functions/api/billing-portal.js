@@ -2,7 +2,8 @@ import { adminHeaders } from './_supabase-admin.js';
 import Stripe from 'stripe';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 export async function onRequestPost({request,env}) {
-  if(env.NF_CHECKOUT_ENABLED!=='true') return json({error:'Billing is not open'},403);
+  const publicCheckout = env.NF_CHECKOUT_ENABLED === 'true';
+  if (!publicCheckout && !env.NF_CHECKOUT_TEST_USER_ID) return json({error:'Billing is not open'},403);
   if(![env.STRIPE_SECRET_KEY,env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY,env.SUPABASE_SECRET_KEY].every(Boolean)) return json({error:'Configuration missing'},503);
   if(new URL(request.url).hostname!=='www.neurofusiondaily.com'||request.headers.get('Origin')!=='https://www.neurofusiondaily.com') return json({error:'Origin denied'},403);
   const auth=request.headers.get('Authorization')||'';
@@ -13,6 +14,8 @@ export async function onRequestPost({request,env}) {
     if(!u.ok) return json({error:'Session expired'},401);
     const user=await u.json();
     if(!user.id||!user.email_confirmed_at) return json({error:'Verified account required'},403);
+    if (!publicCheckout && user.id !== env.NF_CHECKOUT_TEST_USER_ID)
+      return json({error:'Billing is not open'},403);
     const r=await fetch(`${root}/rest/v1/nf_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=stripe_customer_id`,{headers:adminHeaders(env)});
     if(!r.ok) throw new Error('Membership lookup failed');
     const customerId=(await r.json())[0]?.stripe_customer_id;
