@@ -140,4 +140,13 @@ export async function onRequestPost({request,env}) {
     return respond({error:'Checkout temporarily unavailable'},503);
   }
 }
-export function onRequestGet(){return respond({error:'Method not allowed'},405);}
+export async function onRequestGet({request,env}) {
+  // Eligibility is derived server-side from a verified Supabase bearer token.
+  // Never expose the allowlisted UID or open checkout for ordinary visitors.
+  if (env.NF_CHECKOUT_ENABLED === 'true' || !env.NF_CHECKOUT_TEST_USER_ID)
+    return respond({eligible:false});
+  try {
+    const user = await verifyUser(request,env);
+    return respond({eligible:!!user && user.id === env.NF_CHECKOUT_TEST_USER_ID});
+  } catch { return respond({eligible:false}); }
+}
