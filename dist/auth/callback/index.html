@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="no-referrer" name="referrer"/>
+<title>Account verification | NeuroFusion Living</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #f8f6f1;
+      color: #193d39;
+      font-family: Arial, sans-serif;
+    }
+    main {
+      width: min(480px, 100%);
+      padding: 48px 38px;
+      background: #fffdfa;
+      border: 1px solid #e8e5df;
+      border-radius: 22px;
+      text-align: center;
+    }
+    h1 {
+      font: normal 38px Georgia, serif;
+      margin: 0 0 24px;
+    }
+    p { font-size: 15px; line-height: 1.7; }
+    a { color: #193d39; }
+    form { text-align: left; margin-top: 28px; }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      margin: 18px 0 8px;
+    }
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccd5d0;
+      border-radius: 10px;
+      font: 16px Arial, sans-serif;
+    }
+    button {
+      width: 100%;
+      margin-top: 24px;
+      padding: 16px;
+      border: 0;
+      border-radius: 10px;
+      background: #193d39;
+      color: white;
+      font: 600 15px Arial, sans-serif;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+<h1>NeuroFusion Living</h1>
+<p id="message" role="status">
+      Verifying your secure link...
+    </p>
+<form hidden="" id="reset-form">
+<label for="password">New password</label>
+<input autocomplete="new-password" id="password" minlength="12" required="" type="password"/>
+<label for="confirm-password">Confirm new password</label>
+<input autocomplete="new-password" id="confirm-password" minlength="12" required="" type="password"/>
+<button id="submit-button" type="submit">
+        Save new password
+      </button>
+</form>
+<p>
+<a href="/member-login.html">
+        Return to sign in
+      </a>
+</p>
+</main>
+<script type="module">
+    const message = document.getElementById("message");
+    const form = document.getElementById("reset-form");
+    const button = document.getElementById("submit-button");
+
+    const query = new URLSearchParams(location.search);
+    const hash = new URLSearchParams(location.hash.slice(1));
+
+    const linkError =
+      query.get("error_description") ||
+      hash.get("error_description");
+
+    const recoveryRequested =
+      query.get("type") === "recovery" ||
+      hash.get("type") === "recovery";
+
+    let supabase;
+    let recoverySession = false;
+
+    function clearSensitiveUrl() {
+      history.replaceState(null, "", "/auth/callback/");
+    }
+
+    function showError(text) {
+      message.textContent = text;
+      form.hidden = true;
+    }
+
+    async function initialise() {
+      if (linkError) {
+        clearSensitiveUrl();
+        showError(
+          "This link has expired or could not be verified. " +
+          "Please request a new link from the sign-in page."
+        );
+        return;
+      }
+
+      try {
+        const configResponse = await fetch("/api/auth-config", {
+          cache: "no-store"
+        });
+
+        if (!configResponse.ok) {
+          throw new Error("Authentication configuration unavailable.");
+        }
+
+        const config = await configResponse.json();
+
+        const { createClient } = await import(
+          "https://esm.sh/@supabase/supabase-js@2"
+        );
+
+        supabase = createClient(
+          config.supabaseUrl,
+          config.supabasePublishableKey,
+          {
+            auth: {
+              detectSessionInUrl: false,
+              persistSession: true,
+              autoRefreshToken: true
+            }
+          }
+        );
+
+        const tokenHash = query.get("token_hash");
+        const code = query.get("code");
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+
+        let result;
+
+        if (tokenHash) {
+          const type = query.get("type");
+
+          if (!["recovery", "signup", "email", "magiclink", "invite"].includes(type)) {
+            throw new Error("Unsupported verification link.");
+          }
+
+          result = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type
+          });
+        } else if (code) {
+          result = await supabase.auth.exchangeCodeForSession(code);
+        } else if (accessToken && refreshToken) {
+          result = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+        } else {
+          throw new Error("This verification link is incomplete.");
+        }
+
+        clearSensitiveUrl();
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        if (!result.data?.session) {
+          throw new Error("No authenticated session was created.");
+        }
+
+        if (recoveryRequested) {
+          recoverySession = true;
+          message.textContent =
+            "Choose a new password for your account.";
+          form.hidden = false;
+        } else {
+          message.textContent =
+            "Your email has been verified successfully. " +
+            "You can now continue to your account.";
+        }
+      } catch (error) {
+        clearSensitiveUrl();
+        showError(
+          "We couldn't complete verification: " +
+          error.message
+        );
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!recoverySession || !supabase) {
+        showError("Please request a new password reset link.");
+        return;
+      }
+
+      const password =
+        document.getElementById("password").value;
+
+      const confirmation =
+        document.getElementById("confirm-password").value;
+
+      if (password !== confirmation) {
+        message.textContent = "The passwords do not match.";
+        return;
+      }
+
+      button.disabled = true;
+      message.textContent = "Saving your new password...";
+
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password
+        });
+
+        if (error) throw error;
+
+        await supabase.auth.signOut();
+
+        recoverySession = false;
+        form.hidden = true;
+
+        message.textContent =
+          "Your password has been updated successfully. " +
+          "You can now sign in with your new password.";
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    initialise();
+  </script>
+</body>
+</html>

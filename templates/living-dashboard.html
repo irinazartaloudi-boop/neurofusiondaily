@@ -110,6 +110,7 @@ load();
 
 <style>
 /* Members-only Journal, aligned with the public NeuroFusion Insights design */
+.nf-journal-grid[hidden],.nf-journal-reader[hidden],.nf-journal-status[hidden]{display:none!important}
 .nf-journal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:30px}
 .nf-journal-card{border:1px solid #e2e5dd;background:#fffdf9;min-width:0}
 .nf-journal-art{height:160px;display:grid;place-items:center;font-size:53px;color:#24483e;background:#e7eee7}
@@ -138,41 +139,42 @@ const status=document.createElement('p');status.className='nf-journal-status';st
 const grid=document.createElement('div');grid.className='nf-journal-grid';
 const reader=document.createElement('div');reader.className='nf-journal-reader';reader.hidden=true;
 section.append(status,grid,reader);
+const intro=[...section.children].filter(n=>n!==status&&n!==grid&&n!==reader);
+let journalItems=[];
+const journalUrl=new URL(window.location.href);
 const icons=['♡','✦','❋','☾','✿','◈'];
 function el(tag,cls,txt){const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n;}
 function safeBody(body){const out=el('div','nf-journal-prose');if(!body.startsWith('<!-- nf:html -->')){for(const line of body.split(/\n\s*\n/)){if(line.trim())out.append(el('p','',line.trim()));}return out;}
 const doc=new DOMParser().parseFromString(body.replace(/^<!-- nf:html -->\s*/,''),'text/html');const tags=new Set(['P','H2','H3','STRONG','EM','UL','OL','LI','BLOCKQUOTE','BR']);
 function clean(node){if(node.nodeType===Node.TEXT_NODE)return document.createTextNode(node.textContent);if(node.nodeType!==Node.ELEMENT_NODE)return document.createTextNode('');const copy=document.createElement(tags.has(node.tagName)?node.tagName.toLowerCase():'span');for(const child of node.childNodes)copy.append(clean(child));return copy;}
 for(const child of doc.body.childNodes)out.append(clean(child));return out;}
-let journalItems=[];
-const intro=[...section.children].filter(node=>node!==status&&node!==grid&&node!==reader&&node.id!=='member-content-list');
-function topOfJournal(){window.scrollTo({top:0,behavior:'instant'});}
-function journalUrl(id){return '#journal/'+encodeURIComponent(id);}
-function showList(){reader.hidden=true;grid.hidden=false;status.hidden=false;intro.forEach(node=>node.hidden=false);topOfJournal();}
-function showReader(item){
- intro.forEach(node=>node.hidden=true);grid.hidden=true;status.hidden=true;reader.hidden=false;reader.replaceChildren();
- const back=el('button','nf-journal-back','← Back to the Journal');back.type='button';back.onclick=()=>{history.pushState(null,'','#journal');showList();};
- reader.append(back);
- const hero=el('div','nf-journal-hero');hero.append(el('div','nf-journal-eyebrow','NEUROFUSION LIVING / THE JOURNAL'),el('h2','',item.title),el('p','nf-journal-byline','By Dr Irina Zartaloudi · Neuroscience, psychology and real life'));
- if(!item.published)hero.append(el('p','nf-journal-byline','Unpublished draft · Owner preview'));
- reader.append(hero,safeBody(item.body));topOfJournal();
+function articleUrl(id){const u=new URL(window.location.href);u.searchParams.set('journal',String(id));return u.pathname+u.search+u.hash;}
+function collectionUrl(){const u=new URL(window.location.href);u.searchParams.delete('journal');return u.pathname+u.search+u.hash;}
+function displayCollection(updateHistory=true){
+  reader.hidden=true;grid.hidden=false;status.hidden=false;
+  intro.forEach(n=>n.hidden=false);
+  if(updateHistory)history.pushState({journal:null},'',collectionUrl());
+  section.scrollIntoView({behavior:'instant',block:'start'});
 }
-function routeJournal(){
- const match=location.hash.match(/^#journal\/([^/?#]+)$/);
- if(match){let id;try{id=decodeURIComponent(match[1]);}catch{id='';}const item=journalItems.find(x=>String(x.id)===id);if(item){document.querySelector('[data-view="journal"]').click();showReader(item);return;}}
- if(location.hash==='#journal'){document.querySelector('[data-view="journal"]').click();showList();}
+function showReader(item,updateHistory=true){
+  intro.forEach(n=>n.hidden=true);
+  grid.hidden=true;status.hidden=true;reader.hidden=false;reader.replaceChildren();
+  const back=el('button','nf-journal-back','← Back to the Journal');back.type='button';
+  back.onclick=()=>displayCollection();reader.append(back);
+  const hero=el('div','nf-journal-hero');
+  hero.append(el('div','nf-journal-eyebrow','NEUROFUSION LIVING / THE JOURNAL'),el('h2','',item.title),el('p','nf-journal-byline','By Dr Irina Zartaloudi · Neuroscience, psychology and real life'));
+  if(!item.published)hero.append(el('p','nf-journal-byline','Unpublished draft · Owner preview'));
+  reader.append(hero,safeBody(item.body));
+  if(updateHistory)history.pushState({journal:item.id},'',articleUrl(item.id));
+  section.scrollIntoView({behavior:'instant',block:'start'});
 }
-async function loadJournal(){try{
- const response=await fetch('/members/content?type=journal',{cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);
- const data=await response.json();grid.replaceChildren();journalItems=data.items||[];
- status.textContent=journalItems.length?'':'No Journal articles published yet.';
- journalItems.forEach((item,i)=>{const card=el('article','nf-journal-card');const art=el('div','nf-journal-art',icons[i%icons.length]);art.setAttribute('aria-hidden','true');const content=el('div','nf-journal-card-content');content.append(el('div','nf-journal-eyebrow',item.published?'NEUROSCIENCE & EVERYDAY LIFE':'OWNER PREVIEW · DRAFT'),el('h2','',item.title),el('p','',item.summary));const open=el('button','nf-journal-open','Read the article →');open.type='button';open.onclick=()=>{history.pushState(null,'',journalUrl(item.id));showReader(item);};content.append(open);card.append(art,content);grid.append(card);});
- routeJournal();
- }catch(e){status.textContent='The Journal is temporarily unavailable. Please try again.';}}
-window.addEventListener('popstate',()=>{if(location.hash.startsWith('#journal'))routeJournal();else showList();});
-window.addEventListener('hashchange',()=>{if(location.hash.startsWith('#journal'))routeJournal();else showList();});
-document.querySelector('[data-view="journal"]').addEventListener('click',()=>{if(reader.hidden)return;history.replaceState(null,'','#journal');showList();});
-
+function restoreJournalRoute(){
+  const id=new URL(window.location.href).searchParams.get('journal');
+  const item=id&&journalItems.find(x=>String(x.id)===id);
+  if(item)showReader(item,false);else displayCollection(false);
+}
+window.addEventListener('popstate',()=>{if(!section.hidden)restoreJournalRoute();});
+async function loadJournal(){try{const response=await fetch('/members/content?type=journal',{cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);const data=await response.json();grid.replaceChildren();const items=data.items||[];journalItems=items;status.textContent=items.length?'':'No Journal articles published yet.';items.forEach((item,i)=>{const card=el('article','nf-journal-card');const art=el('div','nf-journal-art',icons[i%icons.length]);art.setAttribute('aria-hidden','true');const content=el('div','nf-journal-card-content');content.append(el('div','nf-journal-eyebrow',item.published?'NEUROSCIENCE & EVERYDAY LIFE':'OWNER PREVIEW · DRAFT'),el('h2','',item.title),el('p','',item.summary));const open=el('button','nf-journal-open','Read the article →');open.type='button';open.onclick=()=>showReader(item);content.append(open);card.append(art,content);grid.append(card);});restoreJournalRoute();}catch(e){status.textContent='The Journal is temporarily unavailable. Please try again.';}}
 loadJournal();
 })();
 </script>
