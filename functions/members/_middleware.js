@@ -13,6 +13,9 @@ const protectedResponse = response => {
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', 'private, no-store, max-age=0');
   headers.set('X-Robots-Tag', 'noindex, nofollow');
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('X-Frame-Options', 'DENY');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 };
 function readCookie(header, name) {
