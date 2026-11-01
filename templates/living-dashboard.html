@@ -125,6 +125,28 @@ load();
 </script>
 
 <style>
+#nf-file-manager{margin:24px 0;padding:24px;border:1px solid #d8e3da;border-radius:10px;background:#fffdf9}
+#nf-file-manager label{display:block;margin:12px 0;font-size:14px;font-weight:600}
+#nf-file-manager input,#nf-file-manager select{display:block;max-width:100%;width:100%;padding:10px;border:1px solid #cbd8ce;border-radius:6px}
+#nf-file-manager button{margin:5px 8px 5px 0;padding:9px 13px;background:#235d52;color:white;border:0;border-radius:6px;cursor:pointer}
+#nf-file-manager button:disabled{opacity:.5;cursor:wait}
+.nf-file-row{padding:12px 0;border-top:1px solid #e4e8df}
+</style>
+<script type="module">
+const sectionNames={academy:'Academy',kitchen:'Brain Food Kitchen',journal:'Journal',calm:'Calm Library',studio:'Life Studio',reset:'Reset Room',seasons:'Life Seasons'};
+const manager=document.createElement('section');manager.id='nf-file-manager';manager.hidden=true;
+manager.innerHTML=`<h2 class="studio-section-title">Premium File Manager</h2><p>Private PDFs only. New uploads stay unpublished until you approve them.</p><form id="nf-file-form"><label>PDF file<input name="file" type="file" accept=".pdf,application/pdf" required></label><label>Resource title<input name="title" maxlength="160" required></label><label>Section<select name="section">${Object.entries(sectionNames).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label><button type="submit">Upload privately as draft</button></form><p id="nf-file-feedback" role="status" aria-live="polite"></p><h3>Private resources</h3><div id="nf-file-list"></div>`;
+document.querySelector('[data-section="home"]').append(manager);
+const form=manager.querySelector('form'),feedback=manager.querySelector('#nf-file-feedback'),fileList=manager.querySelector('#nf-file-list');
+async function api(url,options={}){const r=await fetch(url,{credentials:'same-origin',cache:'no-store',...options});const ct=r.headers.get('content-type')||'';if(!ct.includes('application/json'))throw Error('File service returned a non-JSON response (HTTP '+r.status+'). Sign in again if your session expired.');const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed (HTTP '+r.status+')');return data;}
+function element(tag,text){const e=document.createElement(tag);e.textContent=text;return e;}
+async function refresh(){const data=await api('/members/files?list=1');manager.hidden=false;fileList.replaceChildren();if(!data.items.length)fileList.append(element('p','No files uploaded yet.'));for(const item of data.items){const row=element('div','');row.className='nf-file-row';row.append(element('strong',item.title),element('p',sectionNames[item.section]+' · '+(item.published?'Published':'Unpublished')+' · '+item.id));const preview=element('button','Test download');preview.type='button';preview.onclick=async()=>{try{const d=await api('/members/files?id='+encodeURIComponent(item.id));const a=document.createElement('a');a.href=d.url;a.target='_blank';a.rel='noopener noreferrer';a.click();feedback.textContent='Temporary link generated (60 seconds).';}catch(e){feedback.textContent=e.message;}};row.append(preview);const toggle=element('button',item.published?'Unpublish':'Publish');toggle.type='button';toggle.onclick=async()=>{if(item.published&&!confirm('Unpublish this resource? Members will no longer be able to request new links.'))return;toggle.disabled=true;try{await api('/members/files',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id,published:!item.published})});feedback.textContent='Resource updated.';await refresh();}catch(e){feedback.textContent=e.message;toggle.disabled=false;}};row.append(toggle);if(!item.published){const remove=element('button','Delete');remove.type='button';remove.onclick=async()=>{if(!confirm('Permanently delete this unpublished resource?'))return;remove.disabled=true;try{const d=await api('/members/files?id='+encodeURIComponent(item.id),{method:'DELETE'});feedback.textContent=d.storage_cleanup_complete?'Resource deleted.':'Resource unpublished and removed; storage cleanup needs attention.';await refresh();}catch(e){feedback.textContent=e.message;remove.disabled=false;}};row.append(remove);}fileList.append(row);}}
+form.addEventListener('submit',async e=>{e.preventDefault();const file=form.elements.file.files?.[0];if(!file)return;if(file.size<5||file.size>20*1024*1024||!file.name.toLowerCase().endsWith('.pdf')){feedback.textContent='Choose a PDF under 20 MB.';return;}const button=form.querySelector('button');button.disabled=true;feedback.textContent='Uploading securely…';try{const q=new URLSearchParams({title:form.elements.title.value.trim(),section:form.elements.section.value});await api('/members/files?'+q,{method:'POST',headers:{'Content-Type':'application/pdf'},body:file});feedback.textContent='PDF uploaded privately as an unpublished draft.';form.reset();await refresh();}catch(err){feedback.textContent=err.message;}finally{button.disabled=false;}});
+// The list endpoint is owner-only; a normal member receives 403 and never sees the manager.
+refresh().catch(()=>{manager.hidden=true;});
+</script>
+
+<style>
 /* Members-only Journal, aligned with the public NeuroFusion Insights design */
 .nf-journal-grid[hidden],.nf-journal-reader[hidden],.nf-journal-status[hidden]{display:none!important}
 .nf-journal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:30px}
