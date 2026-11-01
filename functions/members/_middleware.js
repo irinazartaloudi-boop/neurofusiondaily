@@ -25,7 +25,7 @@ function readCookie(header, name) {
 
 export async function onRequest(context) {
   const { request, env } = context;
-  const isContentApi = new URL(request.url).pathname.replace(/\/$/, '') === '/members/content';
+  const isContentApi = ['/members/content', '/members/files'].includes(new URL(request.url).pathname.replace(/\/$/, ''));
   const denied = (message, code, status = 401) => isContentApi ? json({ error: message, code }, status) : redirect('/member-login.html');
   const rawToken = readCookie(request.headers.get('Cookie') || '', 'nf_member_access');
   if (!rawToken) return denied('Your session has expired. Please sign in again.', 'session_missing');
